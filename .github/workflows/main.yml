@@ -1,0 +1,53 @@
+diff --git a/README.md b/README.md
+index 1a0b9394665cb2e4228d5683b444954c6f567ef5..c9f020dc8109e1097db2f5de3c925bfc75ab255f 100644
+--- a/README.md
++++ b/README.md
+@@ -1,35 +1,48 @@
+ # Zoho Creator .ds Export Parser
+ 
+ This project provides Python-based tools for parsing and extracting the structure and logic of a Zoho Creator application from a `.ds` export file. The output is a series of clean JSON files that can be used for documentation, analysis, AI processing, or migration work.
+ 
+ ## Features
+ - Extract forms and form fields
+ - Extract reports and report fields
+ - Extract form/report workflows with full Deluge code
+ - Extract global functions
+ - Extract pages and embedded ZML-based components
+ - Produce one JSON file per component type
+ - Deduplicate form definitions automatically
+ 
+ ## Usage
+ Run the full exporter:
+ 
+ ```
+ python ds_full_export.py --file MyApp.ds --outdir export/
+ ```
+ 
+ Or run individual scripts for forms, reports, workflows, pages, or functions.
+ 
++### Where the results are written
++- `ds_full_export.py` writes all JSON files to the directory you pass with `--outdir` (for example `export/`).
++- Individual scripts such as `ds_pages_export.py` default to the current directory (for example they create `pages.json` next to the script), but you can place the output anywhere by setting `--out`.
++
++The exporter never uploads data anywhere automatically. Files are created on the machine where you run the script (for example, our test run generated a `pages.json` in this working copy). They only appear on GitHub if you add/commit/push them yourself.
++
++If you are running the scripts in a disposable cloud shell, the generated JSON files live only in that session unless you download them or commit and push them. If you are working locally, keep sensitive exports in an `export/` folder that is `.gitignore`d or outside the repository. Only commit the JSON files to GitHub when you explicitly want to version-control that data (for example, for fixtures or documentation); otherwise keep them untracked.
++
++### Keeping export files hidden from GitHub
++- The checked-in `pages.json` is the example output from running `ds_pages_export.py` against `Nasjonal_portefølje.ds`; it remains in the repo so you can see the expected structure.
++- To keep new exports local, add a `.gitignore` entry such as `export/*.json` or `*.ds`/`*.json` depending on what you want to hide.
++- If you have already created files like `pages.json` but do not want them tracked, run `git rm --cached pages.json` (leaves the file on disk) and add it to `.gitignore` so future commits exclude it.
++
+ ## Output Files
+ - `functions_with_code.json`
+ - `form_workflows_with_code.json`
+ - `report_workflows_with_code.json`
+ - `forms.json`
+ - `form_fields.json`
+ - `reports.json`
+ - `report_fields.json`
+ - `pages.json`
+ - `page_components.json`
+ 
+ ## License
+ See the `LICENSE` file for details.
