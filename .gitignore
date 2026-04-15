@@ -1,2 +1,5 @@
+# Zoho exports
 *.ds
-*.json
+
+# Generated output
+exports/
