@@ -10,42 +10,34 @@ Per page:
 - page_name
 - display_name
 - has_content
-- content_length        : antall tegn i Content-strengen
+- content_length
 - source_file
-- start_line            : linjenummer der page-definisjonen starter
-- end_line              : linjenummer der page-blokken slutter
-- start_position        : tegnindeks (0-basert) for første tegn inne i page-blokken '{'
-- end_position          : tegnindeks (0-basert) for avsluttende '}' i page-blokken
+- start_line
+- end_line
+- start_position
+- end_position
+
+Scriptet er robust mot .ds-filer som ikke har pages-seksjon.
+Da skrives en tom JSON-liste, og det rapporteres 0 pages eksportert.
 """
 
 import re
 import json
 import argparse
 import os
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 
 def read_text(path: str) -> str:
-    """Les inn en tekstfil som UTF-8."""
     with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
 def char_to_line(text: str, idx: int) -> int:
-    """Konverter tegnindeks til linjenummer (1-basert)."""
     return text.count("\n", 0, idx) + 1
 
 
 def extract_brace_block(text: str, open_idx: int) -> Tuple[str, int, int]:
-    """
-    Gitt indeks til en '{' i `text`, returner innholdet inni blokken,
-    samt start- og sluttindeks (eksklusiv slutt).
-
-    Returnerer (body, body_start_idx, body_end_idx) der:
-    - body           : substring mellom '{' og '}'
-    - body_start_idx : indeks til første tegn etter '{'
-    - body_end_idx   : indeks til selve '}'-tegnet
-    """
     if text[open_idx] != "{":
         open_idx = text.find("{", open_idx)
         if open_idx == -1:
@@ -62,17 +54,20 @@ def extract_brace_block(text: str, open_idx: int) -> Tuple[str, int, int]:
     raise ValueError("Ubalanserte klammer fra posisjon %d" % open_idx)
 
 
-def find_pages_section(text: str) -> Tuple[str, int, int]:
-    """
-    Finn `pages { ... }`-seksjonen og returner (body, start_abs, end_abs).
-    """
+def find_pages_section(text: str) -> Optional[Tuple[str, int, int]]:
     m = re.search(r"^\s*pages\s*$", text, re.MULTILINE)
     if not m:
-        raise ValueError("Fant ingen 'pages'-seksjon i .ds-filen")
+        return None
+
     brace_idx = text.find("{", m.end())
     if brace_idx == -1:
-        raise ValueError("Fant ikke '{' etter 'pages'")
-    body, start, end = extract_brace_block(text, brace_idx)
+        return None
+
+    try:
+        body, start, end = extract_brace_block(text, brace_idx)
+    except ValueError:
+        return None
+
     return body, start, end
 
 
@@ -80,10 +75,11 @@ PAGE_HEADER_RE = re.compile(r"^\s*page\s+(\w+)", re.MULTILINE)
 
 
 def parse_pages(text: str, source_file: str = "") -> List[Dict[str, Any]]:
-    """
-    Parse alle pages fra .ds-teksten og returner som liste med dicts.
-    """
-    pages_body, pages_start_abs, pages_end_abs = find_pages_section(text)
+    section = find_pages_section(text)
+    if section is None:
+        return []
+
+    pages_body, pages_start_abs, pages_end_abs = section
     pages: List[Dict[str, Any]] = []
 
     for m in PAGE_HEADER_RE.finditer(pages_body):
@@ -91,22 +87,21 @@ def parse_pages(text: str, source_file: str = "") -> List[Dict[str, Any]]:
         header_rel_start = m.start()
         header_abs_start = pages_start_abs + header_rel_start
 
-        # Finn '{' som starter selve page-blokken
         brace_idx_abs = text.find("{", header_abs_start, pages_end_abs)
         if brace_idx_abs == -1:
             continue
 
-        page_body, page_start, page_end = extract_brace_block(text, brace_idx_abs)
+        try:
+            page_body, page_start, page_end = extract_brace_block(text, brace_idx_abs)
+        except ValueError:
+            continue
 
-        # displayname
         m_disp = re.search(r'(?i)\bdisplayname\s*=\s*"([^"]*)"', page_body)
         display_name = m_disp.group(1) if m_disp else ""
 
-        # Content
         content_match = re.search(r'Content="', page_body)
         if content_match:
             content_start = content_match.end()
-            # Finn neste " som avslutter strengen
             content_end = page_body.find('"', content_start)
             if content_end == -1:
                 content_end = len(page_body)
@@ -138,16 +133,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Eksporter pages fra .ds-fil til JSON (kun page-metadata)."
     )
-    parser.add_argument(
-        "--file",
-        required=True,
-        help="Sti til .ds-filen",
-    )
-    parser.add_argument(
-        "--out",
-        default="pages.json",
-        help="Filnavn for resultat (default: pages.json)",
-    )
+    parser.add_argument("--file", required=True, help="Sti til .ds-filen")
+    parser.add_argument("--out", default="pages.json", help="Filnavn for resultat (default: pages.json)")
     args = parser.parse_args()
 
     text = read_text(args.file)
