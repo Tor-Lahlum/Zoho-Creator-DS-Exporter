@@ -45,11 +45,7 @@ python run_all_exports.py
 
 * Automatically uses the `.ds` file in the current folder (if only one exists)
 * Outputs all files to:
-
-```
-exports/
-```
-Generated files are written to `/exports` and are not tracked by git.
+* Generated files are written to `/exports` and are not tracked by git.
 ---
 
 ### Optional arguments
