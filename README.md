@@ -49,7 +49,7 @@ python run_all_exports.py
 ```
 exports/
 ```
-
+Generated files are written to `/exports` and are not tracked by git.
 ---
 
 ### Optional arguments
