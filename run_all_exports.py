@@ -1,5 +1,4 @@
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +14,7 @@ OUTPUT_FILES = {
     "ds_reports_export.py": "reports.json",
     "ds_report_fields_export.py": "report_fields.json",
     "ds_report_workflows_export.py": "report_workflows.json",
+    "ds_schedule_workflows_export.py": "schedule_workflows.json",
 }
 
 
@@ -88,6 +88,7 @@ def main() -> None:
         "ds_forms_export.py",
         "ds_form_fields_export.py",
         "ds_form_workflows_export.py",
+        "ds_schedule_workflows_export.py",
         "ds_functions_export.py",
         "ds_pages_export.py",
         "ds_page_components_export.py",
